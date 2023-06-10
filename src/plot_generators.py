@@ -72,7 +72,7 @@ def get_hist_by_sex_work_days(df: pd.DataFrame, work_days: int) -> go.Figure:
     )
 
     return fig
-    
+
 
 def get_whisker_plot_by_sex_work_days(
         df: pd.DataFrame, work_days: int) -> go.Figure:
@@ -80,7 +80,7 @@ def get_whisker_plot_by_sex_work_days(
 
     fig.add_trace(
         go.Box(
-            x=df.query(f'`Пол` == "М"')['Возраст'],
+            x=df.query('`Пол` == "М"')['Возраст'],
             boxmean=True,
             name='М (все значения)',
             showlegend=False
@@ -95,10 +95,10 @@ def get_whisker_plot_by_sex_work_days(
             showlegend=False
         ),
     )
- 
+
     fig.add_trace(
         go.Box(
-            x=df.query(f'`Пол` == "Ж"')['Возраст'],
+            x=df.query('`Пол` == "Ж"')['Возраст'],
             boxmean=True,
             name='Ж (все значения)',
             showlegend=False
@@ -122,10 +122,10 @@ def get_whisker_plot_by_sex_work_days(
 
     return fig
 
-    
+
 def get_hist_by_age_work_days(
         df: pd.DataFrame, work_days: int, age: int) -> go.Figure:
-    
+
     df['older_than_age'] = (
         df['Возраст']
         .apply(lambda x: 'Да' if x > age else 'Нет')
@@ -134,7 +134,7 @@ def get_hist_by_age_work_days(
         df['Количество больничных дней']
         .apply(lambda x: 'Да' if x > work_days else 'Нет')
     )
-    
+
     fig = px.histogram(
         df,
         x='Возраст',
@@ -151,10 +151,10 @@ def get_hist_by_age_work_days(
 
     return fig
 
-    
+
 def get_hist_by_age_work_days_small(
         df: pd.DataFrame, work_days: int) -> go.Figure:
-    
+
     fig = go.Figure()
 
     fig.add_trace(

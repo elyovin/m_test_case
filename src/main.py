@@ -1,18 +1,15 @@
-# TODO: fix when the number of samples in contingency table is zero
-# TODO: give error in edge cases (when < 5 in contingency table)
-# TODO: add google sheets loader
-# TODO: check pylinter
-# TODO: caution if independence test wasn't passed
-
+import pandas as pd
+import streamlit as st
 
 from plot_generators import *
 from test_generators import *
 
-import pandas as pd
-import streamlit as st
-
 
 SHEET_ID = '1g0nPLuoD8KXYU5YeYJmj_NXbg8gcW2VTRgcaYUzGg0c'
+WARNING_TEXT = 'Дальнейшее исследование невозможно'
+REJECT_HYP_TEXT = 'Отклоняем нулевую гипотезу'
+APPROVE_HYP_TEXT = 'Не можем отклонить нулевую гипотезу'
+HYP_TEXT_RES = {True: REJECT_HYP_TEXT, False: APPROVE_HYP_TEXT}
 
 
 def dispaly_hyp_1_plots(df: pd.DataFrame, work_days: int) -> None:
@@ -29,6 +26,56 @@ def display_hyp_2_plots(df: pd.DataFrame, work_days: int, age: int) -> None:
     st.write(fig_2)
 
 
+def display_test_indep_text() -> None:
+    st.subheader('Проверка на независимость с помощью критерия хи-квадрат')
+    st.markdown('$H_0$ : две группы независимы')
+    st.markdown('$H_1$ : две группы не являются независимыми')
+
+
+def display_result_test_indep(caution: bool, is_rejected: bool,
+                              caution_msg: str,
+                              significance_level: float) -> None:
+    if caution:
+        st.warning(caution_msg + ' ' + WARNING_TEXT)
+    else:
+        st.markdown(f'**{HYP_TEXT_RES[is_rejected]}** при уровне значимости'
+                    + f' **{significance_level:.2f}**')
+
+        if is_rejected:
+            st.warning('Гипотеза о независимости не выполнена. '
+                       + WARNING_TEXT)
+
+
+def dispaly_result_stat_test(caution: bool, is_rejected: bool,
+                             caution_msg: str,
+                             significance_level) -> None:
+    if caution:
+        st.warning(caution_msg + ' ' + WARNING_TEXT)
+    else:
+        st.markdown(f'**{HYP_TEXT_RES[is_rejected]}** при уровне значимости'
+                    + f' **{significance_level:.2f}**')
+
+
+def display_stat_test_text_1(work_days: int) -> None:
+    st.subheader('Проверка гипотезы с помощью двухпропорционного Z-теста')
+    st.markdown('$p_1$ - пропорция **мужчин**, которые пропустили более '
+                + f'{work_days} рабочих дней')
+    st.markdown('$p_2$ - пропорция **женщин**, которые пропустили более '
+                + f'{work_days} рабочих дней')
+    st.markdown('$H_0: p_1 = p_2$')
+    st.markdown('$H_1: p_1 > p_2$')
+
+
+def display_stat_test_text_2(work_days: int, age: int) -> None:
+    st.subheader('Проверка гипотезы с помощью двухпропорционного Z-теста')
+    st.markdown(f'$p_1$ - пропорция работников, **старше {age} лет**,'
+                + f' которые пропустили более {work_days} рабочих дней')
+    st.markdown(f'$p_2$ - пропорция работников, **не старше {age} лет**,'
+                + f' которые пропустили более {work_days} рабочих дней')
+    st.markdown('$H_0: p_1 = p_2$')
+    st.markdown('$H_1: p_1 > p_2$')
+
+
 def display_hyp_1(df: pd.DataFrame) -> None:
     work_days = st.number_input(
         label='Количество пропущенных дней',
@@ -42,47 +89,41 @@ def display_hyp_1(df: pd.DataFrame) -> None:
     st.header(f'Гипотеза: мужчины пропускают в течение года более {work_days}'
               + ' рабочих дней по болезни значимо чаще женщин.')
     dispaly_hyp_1_plots(df, work_days)
+    display_test_indep_text()
 
-    st.subheader('Проверка на независимость с помощью критерия хи-квадрат')
-    st.markdown('$H_0$ : две группы независимы')
-    st.markdown('$H_1$ : две группы не являются независимыми')
-    significance_level_independence = st.number_input(
+    significance_level_indep = st.number_input(
         label='Уровень значимости',
         min_value=0.01,
+        max_value=1.00,
         step=0.01,
         value=0.05,
-        key='signifance_level_independence'
+        key='signifance_level_indep'
     )
 
-    cont_table, independence_test_res = get_result_test_independence_1(
+    cont_table, is_rejected_indep, caution_indep = get_result_test_independence_1(
         df, work_days,
-        significance_level_independence)
-    
+        significance_level_indep)
+
     st.write(cont_table)
-    st.markdown(f'**{independence_test_res}** при уровне значимости'
-                + f' **{significance_level_independence:.2f}**')
-
-
-    st.subheader('Проверка гипотезы с помощью двухпропорционного Z-теста')
-    st.markdown('$p_1$ - пропорция **мужчин**, которые пропустили более '
-                + f'{work_days} рабочих дней')
-    st.markdown('$p_2$ - пропорция **женщин**, которые пропустили более '
-                + f'{work_days} рабочих дней')
-    st.markdown('$H_0: p_1 = p_2$')
-    st.markdown('$H_1: p_1 > p_2$')
-
+    display_result_test_indep(caution_indep, is_rejected_indep,
+                              'Слишком маленькая выборка.',
+                              significance_level_indep)
+    display_stat_test_text_1(work_days)
     significance_level_test = st.number_input(
         label='Уровень значимости',
         min_value=0.01,
+        max_value=1.00,
         step=0.01,
         value=0.05,
         key='signifance_level_test'
     )
 
-    stat_test_res = get_result_stat_test_1(df, work_days,
-                                           significance_level_test)
-    st.markdown(f'**{stat_test_res}** при уровне значимости'
-                + f' **{significance_level_test:.2f}**') 
+    is_rejected_stat, caution_stat = get_result_stat_test_1(
+        df, work_days, significance_level_test)
+
+    dispaly_result_stat_test(caution_stat, is_rejected_stat,
+                             'Cлишком маленькая выборка. ',
+                             significance_level_test)
 
 
 def display_hyp_2(df: pd.DataFrame) -> None:
@@ -94,7 +135,7 @@ def display_hyp_2(df: pd.DataFrame) -> None:
         step=1,
         key='work_days'
     )
-    
+
     age = st.number_input(
         label='Возраст',
         min_value=df['Возраст'].min(),
@@ -109,47 +150,42 @@ def display_hyp_2(df: pd.DataFrame) -> None:
               + ' чаще своих более молодых коллег.')
 
     display_hyp_2_plots(df, work_days, age)
+    display_test_indep_text()
 
-    st.subheader('Проверка на независимость с помощью критерия хи-квадрат')
-    st.markdown('$H_0$ : две группы независимы')
-    st.markdown('$H_1$ : две группы не являются независимыми')
-    significance_level_independence = st.number_input(
+    significance_level_indep = st.number_input(
         label='Уровень значимости',
         min_value=0.01,
+        max_value=1.00,
         step=0.01,
         value=0.05,
-        key='signifance_level_independence'
+        key='signifance_level_indep'
     )
 
-    cont_table, independence_test_res = get_result_test_independence_2(
+    cont_table, is_rejected_indep, caution_indep = get_result_test_independence_2(
         df, work_days, age,
-        significance_level_independence)
-    
+        significance_level_indep)
+
     st.write(cont_table)
-    st.markdown(f'**{independence_test_res}** при уровне значимости'
-                + f' **{significance_level_independence:.2f}**')
-
-
-    st.subheader('Проверка гипотезы с помощью двухпропорционного Z-теста')
-    st.markdown(f'$p_1$ - пропорция работников, **старше {age} лет**,'
-                + f' которые пропустили более {work_days} рабочих дней')
-    st.markdown(f'$p_2$ - пропорция работников, **не старше {age} лет**,'
-                + f' которые пропустили более {work_days} рабочих дней')
-    st.markdown('$H_0: p_1 = p_2$')
-    st.markdown('$H_1: p_1 > p_2$')
+    display_result_test_indep(caution_indep, is_rejected_indep,
+                              'Слишком маленькая выборка.',
+                              significance_level_indep)
+    display_stat_test_text_2(work_days, age)
 
     significance_level_test = st.number_input(
         label='Уровень значимости',
         min_value=0.01,
+        max_value=1.00,
         step=0.01,
         value=0.05,
         key='signifance_level_test'
     )
 
-    stat_test_res = get_result_stat_test_2(df, work_days, age,
-                                           significance_level_test)
-    st.markdown(f'**{stat_test_res}** при уровне значимости'
-                + f' **{significance_level_test:.2f}**') 
+    is_rejected_stat, caution_stat = get_result_stat_test_2(
+        df, work_days, age, significance_level_test)
+
+    dispaly_result_stat_test(caution_stat, is_rejected_stat,
+                             'Слишком маленькая выборка.',
+                             significance_level_test)
 
 
 def create_df(file) -> pd.DataFrame:
@@ -179,12 +215,12 @@ def main() -> None:
     st.markdown('Или')
     uploaded_file = st.file_uploader('Выберите .csv файл',
                                      label_visibility='collapsed')
-    
+
     if uploaded_file is not None or sheets_id is not None:
         try:
             df = create_df(uploaded_file or sheets_id)
             is_uploaded = True
-        except Exception as e:
+        except Exception as exception:
             st.warning('Ошибка')
             st.info('Загрузите csv файл')
     else:
@@ -202,7 +238,7 @@ def main() -> None:
             display_hyp_1(df)
         elif option == '2':
             display_hyp_2(df)
-            
+
 
 if __name__ == '__main__':
     main()
