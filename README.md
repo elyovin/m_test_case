@@ -4,4 +4,4 @@
 
 [Приложение](https://m-tech.streamlit.app/)
 
-[Фукционал](https://github.com/elyovin/m_test_case/img/m-tech-test.gif)
+![Фукционал](https://github.com/elyovin/m_test_case/img/m-tech-test.gif)
